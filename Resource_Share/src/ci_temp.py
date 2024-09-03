@@ -50,33 +50,35 @@
 #
 ##############################################################################
 """
-ocerase.py
+ci-temp.py
 
-Description: ocderase cli
+Description: Print out temperature on CI
 
 """
-
-
 import argparse
 
-from resource_manager import ResourceManager
+from resource_manager.ci_temp_sensor import CiTempSensor, TempUnit
 
 
 def main():
     """MAIN"""
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("resource", help="Resource name as listed in board config")
-
-    parser.add_argument("owner", default="", nargs="?", help="Owner of resource")
+    parser.add_argument(
+        "-u", "--unit", default="c", help="Temp unit reported in (c, f, k)"
+    )
     args = parser.parse_args()
 
-    resource_manager = ResourceManager()
+    unit_str = args.unit.lower()
 
-    resource = args.resource
-    owner = args.owner
+    if unit_str == "f":
+        unit = TempUnit.FARENHEIT
+    elif unit_str == "k":
+        unit = TempUnit.KELVIN
+    else:
+        unit = TempUnit.CELSIUS
 
-    resource_manager.resource_reset(resource_name=resource, owner=owner)
+    sensor = CiTempSensor()
+    print(sensor.read(unit=unit))
 
 
 if __name__ == "__main__":

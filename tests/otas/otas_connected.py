@@ -59,13 +59,10 @@ from typing import Dict
 
 import serial
 
-
 from resource_manager import ResourceManager
-
 
 BTN1 = 1
 BTN2 = 2
-
 
 class BasicTester:
     def __init__(self, portname: str) -> None:

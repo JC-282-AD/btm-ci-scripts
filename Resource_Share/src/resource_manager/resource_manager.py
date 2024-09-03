@@ -48,15 +48,18 @@ resource_manager.py
 Description: BTM-CI Resource Manager
 
 """
+import socket
 import glob
 import json
 import os
+import random
 import subprocess
 from datetime import datetime
 from typing import Dict, List, Set, Tuple
 
 # pylint: disable=import-error
 from tabulate import tabulate
+
 
 class ResourceManager:
     # pylint: disable=too-many-public-methods,dangerous-default-value
@@ -65,7 +68,7 @@ class ResourceManager:
     ENV_RESOURCE_LOCK_DIR = "RESOURCE_LOCK_DIR"
     ENV_CI_BOARD_CONFIG = "CI_BOARD_CONFIG"
     ENV_CI_BOARD_CONFIG_CUSTOM = "CI_BOARD_CONFIG_CUSTOM"
-    
+
     def __init__(self, timeout=60, owner="", extra_resources: List[str] = []) -> None:
         # Initialize the resource file
         self.timeout = timeout
@@ -679,15 +682,53 @@ class ResourceManager:
 
         return model, port
 
+    def _generate_3digit_str(self) -> str:
+        lower = 10 ** (2)
+        upper = 10**3 - 1
+        return str(random.randint(lower, upper))
+
+    def _is_port_in_use(self, port: str) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(("localhost", int(port)))
+            except OSError:
+                return True
+
+            return False
+
     def _is_ocd_capable(self, resource):
         if resource not in self.resources:
             return False
 
         info = self.resources[resource]
+        print(info)
         if "dap_sn" not in info:
             return False
-        if "ocdports" not in info:
-            return False
+
+        if "ocdports" in info:
+            return True
+
+        rand_digits = self._generate_3digit_str()
+
+        gdb = f"3{rand_digits}"
+        tcl = f"4{rand_digits}"
+        telnet = f"5{rand_digits}"
+
+        while (
+            self._is_port_in_use(gdb)
+            or self._is_port_in_use(tcl)
+            or self._is_port_in_use(telnet)
+        ):
+            rand_digits = self._generate_3digit_str()
+            gdb = f"3{rand_digits}"
+            tcl = f"4{rand_digits}"
+            telnet = f"6{rand_digits}"
+
+        self.resources[resource]["ocdports"] = {
+            "gdb": f"3{rand_digits}",
+            "tcl": f"4{rand_digits}",
+            "telnet": f"5{rand_digits}",
+        }
 
         return True
 
